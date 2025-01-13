@@ -183,14 +183,15 @@ def pid_turn_control(dest, gain, kp, kd):
 ev3 = EV3Brick()
 
 def pid_turn(dest):
+    global heading
     i = 0
     turn_cl.reset()
-    print(turn_cl.time())
     while turn_cl.time() < 1700:
-        pid_turn_control(dest, 5, 1, 0)
+        pid_turn_control(dest, 10, 1, 0)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
+    heading += int(dest / 90)
         
         
     
@@ -217,6 +218,34 @@ gyro.reset_angle(0)
 #     pid_turn(-90)
 #
 
+def checkHeading():
+    global heading
+    if heading < 0:
+        heading += 4
+    elif heading > 3:
+        heading -= 4
+
+def getAzimuth(n, w, e):
+    s = 0
+    tn, ts, tw, te = n, 0, w, e
+    if heading == 1:
+        tn = e
+        tw = n
+        ts = w
+        te = s
+    elif heading == 2:
+        tn = s
+        tw = e
+        ts = n
+        te = w
+    elif heading == 3:
+        tn = w
+        tw = s
+        ts = e
+        te = n
+    return tn, ts, tw, te
+
+
 
 nextDir = [
     [[0, -1], [-1, 0], [1, 0]],
@@ -238,70 +267,70 @@ heading = 0 # heading
 # left 1
 # right 2
 
+"""             ___             ___
+    0=      1=      2=      3=
+                        ___     ___
+                ___             ___
+    4= |    5= |    6= |    7= |   
+       |       |       |___    |___
+                ___             ___
+    8=     |9=     |10=    |11=    |
+           |       |    ___|    ___|
+                ___             ___
+    12=|   |13=|   |14=|   |15=|   |
+       |   |   |   |   |___|   |___|
+    0000 0001 0010 0011
+    0100 0101 0110 0111
+    1000 1001 1010 1011
+    1100 1101 1110 1111
+"""
+
+
+
 def node():
     global heading, openList
     gyro.reset_angle(0)
-    robot.reset()
     while True:
         tof = getTOF()
-        pid_control(150, 5, 1, 0)
+        pid_control(200, 5, 1, 0)
         if tof.condition:
-            if tof.t3 <= 50:
+            if tof.t3 <= 70:
                 break
         if robot.distance() < -300:
             break
     robot.stop()
     tof = gTOF()
-    rotation = 0
+    n, w, e = 1, 1, 1
     if tof.t1 > 150:
         openList.insert(0, nextDir[heading][2])
-        rotation = -1
+        e = 0
     if tof.t2 > 150:
+        w = 0
         openList.insert(0, nextDir[heading][1])
-        rotation = 1
-    
+    if tof.t3 > 200:
+        n = 0
+    n, s, w, e = getAzimuth(n, w, e)
+    print(int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2), n, w, e)
 
     return tof
 
-# while True:
-#     while us.distance() >= 60:
-#         getTOF()
-#         pid_control(150, 5, 1, 0)
-#     wait(50)
-#     tof = gTOF()
-#     print(tof.t1, tof.t2)
-#     if tof.t1 > 100:
-#         robot.turn(90)
-#     elif tof.t2 > 100:
-#         robot.turn(-90)
-#     else:
-#         robot.turn(180)
-#     ev3.speaker.beep()
-#     robot.stop(Stop.BRAKE)
-#     wait(10)
-#     gyro.reset_angle(0)
+
+tof = gTOF()
+n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 
 
-# while True:
-#     while True:
-#         ev3.screen.clear()
-#         tof = getTOF()
-#         ev3.screen.draw_text(25, 25, str(tof.t1) + " " + str(tof.t2) + " " + str(tof.t3) + " " +  str(tof.t4))
-#         wait(5)
-#         if Button.CENTER in ev3.buttons.pressed():
-#             break
-#     while us.distance() > 20:
-#         tof = getTOF()
-#         print(tof.t1, tof.t2)
-#         pid_control(100, 5, 1, 0)
-#     robot.stop()
-#     break
+
+grid = [[int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)]]
+print(grid)
 
 print(1)
 for i in range(5):
-    tof = node()
+    
 
+    tof = node()
+    checkHeading()
     nextNode = openList[0]
+    ser.clear()
     tof = gTOF()
     if tof.t3 < 200:
         if nextNode[0] == 1:
@@ -311,8 +340,8 @@ for i in range(5):
         
         openList.remove(nextNode)
     gyro.reset_angle(0)
-
     print(openList, tof, nextNode)
+    robot.reset()
 
 # while True:
 #     tof = node()
