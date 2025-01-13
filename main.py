@@ -44,14 +44,14 @@ from pybricks.iodevices import UARTDevice
 PacketIndex = 0
 ObjectIndex = 0
 g1 = GyroSensor(Port.S1)
-g2 = GyroSensor(Port.S4)
+# g2 = GyroSensor(Port.S4)
 rm = Motor(Port.C)
 lm = Motor(Port.B)
-robot = DriveBase(lm, rm, wheel_diameter=38.35, axle_track=157.1)
+robot = DriveBase(lm, rm, wheel_diameter=75, axle_track=120)
 gyro = GyroSensor(Port.S4)
 TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "t4"])
 null_tof = TOFData(False, 0, 0, 0, 0)
-us = UltrasonicSensor(Port.S2)
+# us = UltrasonicSensor(Port.S2)
 azimuth = namedtuple('azimuth', ['n', 's', 'w', 'e'])
 direction = namedtuple('direction', ['x', 'y'])
 
@@ -162,7 +162,6 @@ def pid_control(speed, gain, kp, kd):
     global lastYaw; global max_error
     # 라인트레이싱 - PID control
     yaw = 0 - gyro.angle()
-    print(yaw)
     differential = yaw - lastYaw
     lastYaw = yaw
     # 적분 상수를 0으로 입력할 경우
@@ -185,11 +184,14 @@ ev3 = EV3Brick()
 
 def pid_turn(dest):
     i = 0
-    while turn_cl < 100:
+    turn_cl.reset()
+    print(turn_cl.time())
+    while turn_cl.time() < 1700:
         pid_turn_control(dest, 5, 1, 0)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
+        
         
     
 
@@ -237,24 +239,30 @@ heading = 0 # heading
 # right 2
 
 def node():
-    while robot.distance() > 30 and us.distance() >= 60:
-        getTOF()
+    global heading, openList
+    gyro.reset_angle(0)
+    robot.reset()
+    while True:
+        tof = getTOF()
         pid_control(150, 5, 1, 0)
+        if tof.condition:
+            if tof.t3 <= 50:
+                break
+        if robot.distance() < -300:
+            break
+    robot.stop()
     tof = gTOF()
     rotation = 0
-    if tof.t2 > 150:
-        openList.append(nextDir[heading][2])
-        rotation = 1
     if tof.t1 > 150:
-        openList.append(nextDir[heading][1])
+        openList.insert(0, nextDir[heading][2])
         rotation = -1
-    if us.distance() < 60:
-        openList.append(nextDir[heading][0])
-
-    if rotation != 0 and us.distance() < 60:
-
-
+    if tof.t2 > 150:
+        openList.insert(0, nextDir[heading][1])
+        rotation = 1
     
+
+    return tof
+
 # while True:
 #     while us.distance() >= 60:
 #         getTOF()
@@ -288,4 +296,27 @@ def node():
 #         pid_control(100, 5, 1, 0)
 #     robot.stop()
 #     break
+
+print(1)
+for i in range(5):
+    tof = node()
+
+    nextNode = openList[0]
+    tof = gTOF()
+    if tof.t3 < 200:
+        if nextNode[0] == 1:
+            pid_turn(90)
+        else:
+            pid_turn(-90)
+        
+        openList.remove(nextNode)
+    gyro.reset_angle(0)
+
+    print(openList, tof, nextNode)
+
+# while True:
+#     tof = node()
+
     
+#     pid_turn(90)
+#     pass
