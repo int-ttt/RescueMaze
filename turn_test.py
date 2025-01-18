@@ -23,7 +23,7 @@ from pybricks.iodevices import UARTDevice
 ev3 = EV3Brick()
 lm = Motor(Port.C)
 rm = Motor(Port.B)
-ul = UltrasonicSensor(Port.S2)
+# ul = UltrasonicSensor(Port.S2)
 robot = DriveBase(lm, rm, wheel_diameter=73.21, axle_track = 257)
 ev3.speaker.beep()
 gyro = GyroSensor(Port.S1)
@@ -132,6 +132,13 @@ gyro.reset_angle(0)
 while not Button.CENTER in ev3.buttons.pressed():
     pass
 
+
+while True:
+    tof = getTOF()
+    
+    if not tof.condition:
+        continue
+    print(tof)
 
 while True:
     tof = getTOF()

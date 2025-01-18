@@ -89,20 +89,20 @@ I2C_J15= SoftI2C(scl = 'P6', sda = 'P9', freq = 800000, timeout=50000) #Soft I2C
 #---------------------------------------------------------------------
 TOF1 = VL53L0X(I2C_J7)
 TOF2 = VL53L0X(I2C_J8)
-#TOF3 = VL53L0X(I2C_J9)
+TOF3 = VL53L0X(I2C_J9)
 #TOF4 = VL53L0X(I2C_J15)
 #IMU = BNO055(I2C_J9)
 TOF1.start()
 TOF2.start()
-#TOF3.start()
+TOF3.start()
 #TOF4.start()
 
 sensor.reset()
 base_height = 47
 
 td1 = 109 - base_height
-td2 = 101 - base_height
-#td3 = 109 - base_height
+td2 = 57 - base_height
+td3 = 64 - base_height
 #td4 = 101 - base_height
 
 # -------------------------------------------------------------
@@ -130,20 +130,20 @@ while True:
     PACKET = b''
     t1 = TOF1.read()
     t2 = TOF2.read()
-#    t3 = TOF3.read()
+    t3 = TOF3.read()
 #    t4 = TOF4.read()
 
 
 #    print(t1, t2, t3, t4)
 
 
-#    t3v = t3 - td3
+#
 #    t4v = t4 - td4
 #    t1v = 0
 #    t2v = 0
     t1v = t1 - td1
     t2v = t2 - td2
-    t3v = 0
+    t3v = t3 - td3
     t4v = 0
     errorPacket = 0
     print(t1, t2, t3, t4, t1v, t2v, t3v, t4v)
@@ -164,5 +164,5 @@ while True:
     addData('uInt8', chksum)
 
     uart.write(PACKET)
-    pyb.delay(10)
+    pyb.delay(15)
 

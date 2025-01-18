@@ -187,7 +187,7 @@ def pid_turn(dest, time = 1950):
     i = 0
     turn_cl.reset()
     while turn_cl.time() < time:
-        pid_turn_control(dest, 8, 1.4, 2.1)
+        pid_turn_control(dest, 7.8, 1.2, 2)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
@@ -294,11 +294,11 @@ def back():
     robot.reset()
     while True:
         tof = getTOF()
-        pid_control(200, 5, 1, 0)
+        pid_control(200, 6, 1.2, 2)
         if tof.condition:
             if tof.t3 <= 80:
                 break
-        if robot.distance() < -290:
+        if robot.distance() < -285:
             break
     robot.stop()
     
