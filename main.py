@@ -45,8 +45,8 @@ PacketIndex = 0
 ObjectIndex = 0
 g1 = GyroSensor(Port.S1)
 # g2 = GyroSensor(Port.S4)
-rm = Motor(Port.C)
-lm = Motor(Port.B)
+rm = Motor(Port.C,gears=[12,20])
+lm = Motor(Port.B, gears=[12,20])
 robot = DriveBase(lm, rm, wheel_diameter=75, axle_track=120)
 gyro = GyroSensor(Port.S4)
 TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "t4"])
@@ -182,18 +182,18 @@ def pid_turn_control(dest, gain, kp, kd):
 # Initialize the EV3
 ev3 = EV3Brick()
 
-def pid_turn(dest):
+def pid_turn(dest, time = 1950):
     global heading
     i = 0
     turn_cl.reset()
-    while turn_cl.time() < 1700:
-        pid_turn_control(dest, 10, 1, 0)
+    while turn_cl.time() < time:
+        pid_turn_control(dest, 8, 1.4, 2.1)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
     heading += int(dest / 90)
         
-        
+
     
 
 
@@ -285,19 +285,39 @@ heading = 0 # heading
     1100 1101 1110 1111
 """
 
+back_list = []
 
+def back():
+    pid_turn(180, 2250)
+    
+    gyro.reset_angle(0)
+    robot.reset()
+    while True:
+        tof = getTOF()
+        pid_control(200, 5, 1, 0)
+        if tof.condition:
+            if tof.t3 <= 80:
+                break
+        if robot.distance() < -290:
+            break
+    robot.stop()
+    
 
 def node():
     global heading, openList
+    checkHeading()
+    robot.reset()
+    print(heading)
     gyro.reset_angle(0)
     while True:
         tof = getTOF()
         pid_control(200, 5, 1, 0)
         if tof.condition:
-            if tof.t3 <= 70:
+            if tof.t3 <= 80:
                 break
-        if robot.distance() < -300:
+        if robot.distance() < -290:
             break
+    print(tof)
     robot.stop()
     tof = gTOF()
     n, w, e = 1, 1, 1
@@ -322,6 +342,29 @@ n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 
 grid = [[int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)]]
 print(grid)
+
+ser.clear()
+
+node()
+pid_turn(-90)
+node()
+pid_turn(-90)
+node()
+back()
+pid_turn(-90)
+node()
+pid_turn(-90)
+node()
+pid_turn(90)
+node()
+pid_turn(90)
+node()
+node()
+node()
+pid_turn(90)
+
+
+quit()
 
 print(1)
 for i in range(5):
