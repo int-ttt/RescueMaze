@@ -164,5 +164,5 @@ while True:
     addData('uInt8', chksum)
 
     uart.write(PACKET)
-    pyb.delay(15)
+    pyb.delay(10)
 

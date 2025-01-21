@@ -29,7 +29,6 @@
 # 10. CHECKSUM : PACKET HEADER를 포함한 모든 수신데이터의 Exclusive Or 값. (chksum ^= all recieve data)
 # ---------------------------------------------------------------------------------------------------------
 
-import struct
 
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
@@ -38,23 +37,23 @@ from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
+from cam import *
 from ucollections import namedtuple
 from pybricks.iodevices import UARTDevice
 
 PacketIndex = 0
 ObjectIndex = 0
-g1 = GyroSensor(Port.S1)
+# g1 = GyroSensor(Port.S1)
 # g2 = GyroSensor(Port.S4)
 rm = Motor(Port.C,gears=[12,20])
 lm = Motor(Port.B, gears=[12,20])
 robot = DriveBase(lm, rm, wheel_diameter=75, axle_track=120)
 gyro = GyroSensor(Port.S4)
-TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "t4"])
-null_tof = TOFData(False, 0, 0, 0, 0)
 # us = UltrasonicSensor(Port.S2)
 azimuth = namedtuple('azimuth', ['n', 's', 'w', 'e'])
 direction = namedtuple('direction', ['x', 'y'])
-
+# Initialize the EV3
+ev3 = EV3Brick()
 turn_cl = StopWatch()
 
 def check_drift():
@@ -85,83 +84,16 @@ def check_drift():
 # check_drift()
     
 
-rcvPACKET = bytearray([])
-Object = list([])
-ObjectCount = 0
 
-def _parsing(_data) -> tuple["uInt16", "uInt16", "uInt16", "uInt16", "uInt16"]:
-    buf = struct.unpack("<hhhhh", _data)
-    return tuple(buf)
-
-def readPacket() -> bool:
-    global PacketIndex
-    global ObjectIndex
-    global rcvPACKET
-    global ObjectCount
-    
-    read = False
-
-    rcvPACKET = bytearray([])
-    rcvPACKET += ser.read()
-    PacketIndex = 0
-    if rcvPACKET[0] == 0xAA:
-        PacketIndex = 1
-        rcvPACKET += ser.read()
-        if rcvPACKET[1] == 0xCC:
-            PacketIndex = 2
-            rcvPACKET += ser.read(10)
-
-            rcvPACKET += ser.read() #CHECKSUM
-
-            chksum = 0
-            for r in rcvPACKET:     #CHECKSUM 계산
-                chksum ^= r
-                
-            if chksum != 0:         #CHECKSUM ERROR
-                print("CHECK SUM ERROR")
-                return False
-
-            return True
-    return False
-            
-def getTOF():
-    read = True
-    if ser.waiting() >= 5:  # 수신 데이터가 있으면 (최소 사이즈는 5 바이트임)
-        wait(1) 
-        if readPacket():    # 데이터 수신에 성공했으면 Parsing 함
-            tof1 = struct.unpack("<H",rcvPACKET[4:6])[0]
-            tof2 = struct.unpack("<H",rcvPACKET[6:8])[0]
-            tof3 = struct.unpack("<H",rcvPACKET[8:10])[0]
-            tof4 = struct.unpack("<H",rcvPACKET[10:12])[0]
-
-            # print("OK")
-            # print("TOF1  : ",tof1)
-            # print("TOF2  : ",tof2)
-            # print("TOF3  : ",tof3)
-            # print("TOF4  : ",tof4)
-            # print(rcvPACKET, ser.read_all())
-            # if tof1 < 50:
-            #     print("TOF1  : ",tof1)
-            # if tof2 < 50:
-            #     print("TOF2  : ",tof2)
-            return TOFData(True, tof1, tof2, tof3, tof4)
-        else: return null_tof
-    else:
-        return null_tof
-
-def gTOF():
-    while True:
-        tof = getTOF()
-        if tof.condition:
-            break
-    return tof
-
+"""
+    pid movement control
+"""
 lastYaw = 0
 def pid_control(speed, gain, kp, kd):
     # 전역변수를 지역변수로
     global lastYaw; global max_error
     # 라인트레이싱 - PID control
-    yaw = 0 - gyro.angle()
+    yaw = 0 + gyro.angle()
     differential = yaw - lastYaw
     lastYaw = yaw
     # 적분 상수를 0으로 입력할 경우
@@ -172,36 +104,88 @@ def pid_control(speed, gain, kp, kd):
 lastTurnYaw = 0
 def pid_turn_control(dest, gain, kp, kd):
     global lastTurnYaw
-    yaw = dest-gyro.angle()
+    yaw = dest+gyro.angle()
     diff = yaw - lastTurnYaw
     lastTurnYaw = yaw
     steering = (kp * yaw + kd * diff) * gain
 
     robot.drive(0, steering)
 
-# Initialize the EV3
-ev3 = EV3Brick()
 
-def pid_turn(dest, time = 1950):
+"""
+    movement functions
+"""
+
+def pid_turn(dest, time = 1700):
     global heading
     i = 0
     turn_cl.reset()
+
     while turn_cl.time() < time:
-        pid_turn_control(dest, 7.8, 1.2, 2)
+        g = gyro.angle()
+        print(g, gyro.angle() + dest + int(dest / 90))
+        pid_turn_control(dest + int(dest / 90), 7.6, 1.3, 2)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
+    print(int(dest / 90))
+    gyro.reset_angle(0)
     heading += int(dest / 90)
         
+def back():
+    pid_turn(180, 2000)
+    
+    ser.clear()
+    robot.stop(Stop.HOLD)
+    robot.reset()
+    wait(30)
+    gyro.reset_angle(0)
 
+    while True:
+        
+        tof = getTOF()
+        pid_control(200, 6, 1, 1.7)
+        if tof.condition:
+            if tof.t3 != 0 and tof.t3 <= 68:
+                break
+        if robot.distance() < -285:
+            break
+    robot.stop()
     
 
+def node():
+    global heading, openList
+    robot.reset()
+    print(robot.distance())
+    gyro.reset_angle(0)
+    
+    ser.clear()
+    while True:
+        tof = getTOF()
+        pid_control(200, 6, 1, 1.7)
+        if tof.condition:
+            if tof.t3 != 0 and tof.t3 <= 68:
+                break
+        if robot.distance() < -285:
+            break
+    print(tof)
+    robot.stop()
+    lm.stop()
+    rm.stop()
+    tof = gTOF()
+    n, w, e = 1, 1, 1
+    if tof.t1 > 150:
+        openList.insert(0, nextDir[heading][2])
+        e = 0
+    if tof.t2 > 150:
+        w = 0
+        openList.insert(0, nextDir[heading][1])
+    if tof.t3 > 200:
+        n = 0
+    n, s, w, e = getAzimuth(n, w, e)
+    print(int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2), n, w, e)
 
-# Initialize sensor port 2 as a uart device
-ser = UARTDevice(Port.S3, 115200)
-ser.clear()
-wait(100)
-ser.write(b'\xaa')
+    return tof
 
 gyro.reset_angle(0)
 #
@@ -218,6 +202,10 @@ gyro.reset_angle(0)
 #     pid_turn(-90)
 #
 
+"""
+    heading
+"""
+
 def checkHeading():
     global heading
     if heading < 0:
@@ -228,7 +216,7 @@ def checkHeading():
 def getAzimuth(n, w, e):
     s = 0
     tn, ts, tw, te = n, 0, w, e
-    if heading == 1:
+    if heading == 3:
         tn = e
         tw = n
         ts = w
@@ -238,7 +226,7 @@ def getAzimuth(n, w, e):
         tw = e
         ts = n
         te = w
-    elif heading == 3:
+    elif heading == 1:
         tn = w
         tw = s
         ts = e
@@ -248,10 +236,10 @@ def getAzimuth(n, w, e):
 
 
 nextDir = [
-    [[0, -1], [-1, 0], [1, 0]],
-    [[-1, 0], [0, 1], [0, -1]],
-    [[0, 1], [1, 0], [-1, 0]],
-    [[1, 0], [0, -1], [0, 1]]
+    [direction(0, -1), direction(-1, 0), direction(1, 0)],
+    [direction(-1, 0), direction(0, 1), direction(0, -1)],
+    [direction(0, 1), direction(1, 0), direction(-1, 0)],
+    [direction(1, 0), direction(0, -1), direction(0, 1)]
 ]
 
 
@@ -287,53 +275,15 @@ heading = 0 # heading
 
 back_list = []
 
-def back():
-    pid_turn(180, 2250)
-    
-    gyro.reset_angle(0)
-    robot.reset()
-    while True:
-        tof = getTOF()
-        pid_control(200, 6, 1.2, 2)
-        if tof.condition:
-            if tof.t3 <= 80:
-                break
-        if robot.distance() < -285:
-            break
-    robot.stop()
-    
+"""
+    list configuration
+"""
 
-def node():
-    global heading, openList
-    checkHeading()
-    robot.reset()
-    print(heading)
-    gyro.reset_angle(0)
-    while True:
-        tof = getTOF()
-        pid_control(200, 5, 1, 0)
-        if tof.condition:
-            if tof.t3 <= 80:
-                break
-        if robot.distance() < -290:
-            break
-    print(tof)
-    robot.stop()
-    tof = gTOF()
-    n, w, e = 1, 1, 1
-    if tof.t1 > 150:
-        openList.insert(0, nextDir[heading][2])
-        e = 0
-    if tof.t2 > 150:
-        w = 0
-        openList.insert(0, nextDir[heading][1])
-    if tof.t3 > 200:
-        n = 0
-    n, s, w, e = getAzimuth(n, w, e)
-    print(int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2), n, w, e)
-
-    return tof
-
+def appendList(dir):
+    global grid
+    tGrid = [([0 for i in range(len(grid[0])+ abs(dir.x))] + []) for j in range(len(grid) + abs(dir.y))]
+    print(tGrid)
+    grid = tGrid
 
 tof = gTOF()
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
@@ -357,11 +307,33 @@ pid_turn(-90)
 node()
 pid_turn(90)
 node()
-pid_turn(90)
-node()
-node()
 node()
 pid_turn(90)
+
+node()
+pid_turn(90)
+node()
+pid_turn(-90)
+node()
+node()
+pid_turn(-90)
+node()
+back()
+node()
+pid_turn(90)
+node()
+pid_turn(-90)
+node()
+node()
+node()
+pid_turn(90)
+node()
+back()
+node()
+pid_turn(-90)
+node()
+pid_turn(90)
+node()
 
 
 quit()
