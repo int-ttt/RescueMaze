@@ -57,6 +57,7 @@ nodeData = namedtuple('nodeData', ['x', 'y', ''])
 # Initialize the EV3
 ev3 = EV3Brick()
 turn_cl = StopWatch()
+speed_cl = StopWatch()
 
 def check_drift():
     global using_gyro
@@ -160,7 +161,7 @@ def back():
         if tof.condition:
             if tof.t3 != 0 and tof.t3 <= 68:
                 break
-        if robot.distance() < -310:
+        if robot.distance() < -290:
             break
     robot.stop()
     
@@ -183,24 +184,19 @@ def node():
         if robot.distance() < -290:
             break
     print(tof)
-    robot.stop()
-    lm.stop()
-    rm.stop()
+    robot.stop(Stop.BRAKE)
     tof = gTOF()
-    n, w, e = 1, 1, 1
-    if tof.t1 > 150:
-        openList.insert(0, nextDir[heading][2])
-        e = 0
-    if tof.t3 > 200:
-        n = 0
-        openList.insert(0, nextDir[heading][0])
-    if tof.t2 > 150:
-        w = 0
-        openList.insert(0, nextDir[heading][1])
-    n, s, w, e = getAzimuth(n, w, e)
-    wall = int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2)
+    on, ow, oe = tof.t3 <= 200, tof.t2 <= 150, tof.t1 <= 150
+    n, s, w, e = getAzimuth(int(on), int(ow), int(oe))
+    wall = int(str(e) + str(w) + str(s) +  str(n), 2)
     print(wall, n, w, e, dir)
     appendList(dir, wall)
+    if not oe:
+        openList.insert(0, nextDir[heading][2])
+    if not on:
+        openList.insert(0, nextDir[heading][0])
+    if not ow:
+        openList.insert(0, nextDir[heading][1])
     return tof
 
 gyro.reset_angle(0)
@@ -297,60 +293,87 @@ back_list = []
 """
 
 def appendList(dir, wall):
-    global grid, nextNode
-    print(openList)
-
-    # 다음 노드 계산
-    nextNode = Node(nextNode.x + dir.x, nextNode.y + dir.y, wall)
-    print(nextNode)
-
+    speed_cl.reset()
+    global grid, nextNode, openList
     # dx, dy 초기화
     dx, dy = 0, 0
-
+    tx, ty = -dir.x, -dir.y
+    # 다음 노드 계산
+    nextNode = Node(nextNode.x + dir.x, nextNode.y + dir.y, wall)
     # 그리드 크기 계산
-    new_width = len(grid[0])
-    new_height = len(grid)
+    new_width = len(grid[0]) if grid else 0
+    new_height = len(grid) if grid else 0
 
     # 방향에 따른 그리드 확장 여부 및 nextNode 위치 조정
     if dir.x < 0 and nextNode.x < 0:  # 왼쪽으로 이동
         new_width += 1
         nextNode.x = 0
+        dx = 1  # 왼쪽으로 이동 시 첫 번째 열에 위치
     elif dir.x > 0 and nextNode.x >= new_width:  # 오른쪽으로 이동
         new_width += 1
         nextNode.x = new_width - 1
+        dx = new_width - 1  # 오른쪽 끝에 위치
 
     if dir.y < 0 and nextNode.y < 0:  # 위쪽으로 이동
         new_height += 1
         nextNode.y = 0
+        dy = 1  # 첫 번째 행에 위치
     elif dir.y > 0 and nextNode.y >= new_height:  # 아래쪽으로 이동
         new_height += 1
         nextNode.y = new_height - 1
+        dy = new_height - 1  # 마지막 행에 위치
+    
+    if dir.x == 0:
+        tx = 0
+    if dir.y == 0:
+        ty = 0
 
     # 새로운 그리드 생성
-    tGrid = [[NNode() for _ in range(new_width)] for _ in range(new_height)]
+    if new_width > len(grid[0]) or new_height > len(grid):
+        # 필요할 때만 새로운 그리드를 생성
+        tGrid = [[NNode() for _ in range(new_width)] for _ in range(new_height)]
+        
+        # 기존 그리드 복사
+        for y in range(len(grid)):
+            for x in range(len(grid[0])):
+                tGrid[y][x] = grid[y][x]
+    else:
+        # 기존 그리드 유지
+        tGrid = grid
+
+    print(tGrid, tx, ty)
+
+    for y in range(len(grid)):
+        for x in range(len(grid[0])):
+            node = grid[y][x]
+            node.addXY(dx, dy)
+            tGrid[y + dy][x + dx] = node
 
     # nextNode 삽입
     tGrid[nextNode.y][nextNode.x] = nextNode
 
     # 그리드 갱신
     grid = tGrid
-
+    tOpenList = []
+    for e in openList:
+        tOpenList.append(direction(e.x + tx, e.y + ty))
+    openList = tOpenList
     # 확장된 그리드 출력
     for row in tGrid:
         print(row)
 
 tof = gTOF()
-if tof.t1 > 150:
-    openList.insert(0, nextDir[heading][2])
-if tof.t2 > 150:
-    openList.insert(0, nextDir[heading][1])
-if tof.t3 > 200:
-    openList.insert(0, nextDir[heading][0])
+
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 wall = int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)
 
-
-grid = [[int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)]]
+if not e:
+    openList.insert(0, nextDir[heading][2])
+if not n:
+    openList.insert(0, nextDir[heading][0])
+if not w:
+    openList.insert(0, nextDir[heading][1])
+grid = [[Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))]]
 print(grid)
 
 ser.clear()
