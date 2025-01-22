@@ -298,37 +298,46 @@ back_list = []
 
 def appendList(dir, wall):
     global grid, nextNode
-    tx, ty = 0, 0
-    dx, dy = 0, 0
     print(openList)
 
+    # 다음 노드 계산
     nextNode = Node(nextNode.x + dir.x, nextNode.y + dir.y, wall)
     print(nextNode)
-    if (dir.x < 0 or dir.x > 0) and (len(grid[0]) < nextNode.x + dir.x or 0 > nextNode.x + dir.x + 1):
-        tGrid = [NNode() for i in range(len(grid[0]) + 1)]
-        if dir.x == -1:
-            dx = 1
-        tx = -dir.x
-    else:
-        if dir.x < 0 or dir.x > 0:
-            tx = -dir.x
-        tGrid = [NNode() for i in range(len(grid[0]))]
 
-    if (dir.y < 0 or dir.y > 0) and (len(grid) < nextNode.y + dir.y or nextNode.y + dir.y + 1 < 0):
-        tGrid = [(tGrid + []) for i in range(len(grid) + 1)]
-        if dir.y == -1:
-            dy = 1
-        ty = -dir.y
-    else:
-        if dir.y < 0 or dir.y > 0:
-            ty = -dir.y
-        tGrid = [(tGrid + []) for i in range(len(grid))]
-    print(tGrid)
-    tGrid[nextNode.y + dy][nextNode.x + dx] = nextNode
-    for e in tGrid:
-        print(e)
-    nextNode.addXY(dx, dy)
+    # dx, dy 초기화
+    dx, dy = 0, 0
+
+    # 그리드 크기 계산
+    new_width = len(grid[0])
+    new_height = len(grid)
+
+    # 방향에 따른 그리드 확장 여부 및 nextNode 위치 조정
+    if dir.x < 0 and nextNode.x < 0:  # 왼쪽으로 이동
+        new_width += 1
+        nextNode.x = 0
+    elif dir.x > 0 and nextNode.x >= new_width:  # 오른쪽으로 이동
+        new_width += 1
+        nextNode.x = new_width - 1
+
+    if dir.y < 0 and nextNode.y < 0:  # 위쪽으로 이동
+        new_height += 1
+        nextNode.y = 0
+    elif dir.y > 0 and nextNode.y >= new_height:  # 아래쪽으로 이동
+        new_height += 1
+        nextNode.y = new_height - 1
+
+    # 새로운 그리드 생성
+    tGrid = [[NNode() for _ in range(new_width)] for _ in range(new_height)]
+
+    # nextNode 삽입
+    tGrid[nextNode.y][nextNode.x] = nextNode
+
+    # 그리드 갱신
     grid = tGrid
+
+    # 확장된 그리드 출력
+    for row in tGrid:
+        print(row)
 
 tof = gTOF()
 if tof.t1 > 150:
@@ -427,3 +436,4 @@ for i in range(5):
     
 #     pid_turn(90)
 #     pass
+# 현재 그리드가 [[14]] 이고 nextNode(0,0,14)이고 dir(0, -1)일때 두 식을 사용해서 값을 출력해봐
