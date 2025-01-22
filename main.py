@@ -40,6 +40,7 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 from cam import *
 from ucollections import namedtuple
 from pybricks.iodevices import UARTDevice
+from grid import *
 
 PacketIndex = 0
 ObjectIndex = 0
@@ -47,11 +48,12 @@ ObjectIndex = 0
 # g2 = GyroSensor(Port.S4)
 rm = Motor(Port.C,gears=[12,20])
 lm = Motor(Port.B, gears=[12,20])
-robot = DriveBase(lm, rm, wheel_diameter=75, axle_track=120)
+robot = DriveBase(lm, rm, wheel_diameter=75.1, axle_track=120)
 gyro = GyroSensor(Port.S4)
 # us = UltrasonicSensor(Port.S2)
 azimuth = namedtuple('azimuth', ['n', 's', 'w', 'e'])
 direction = namedtuple('direction', ['x', 'y'])
+nodeData = namedtuple('nodeData', ['x', 'y', ''])
 # Initialize the EV3
 ev3 = EV3Brick()
 turn_cl = StopWatch()
@@ -88,6 +90,7 @@ def check_drift():
 """
     pid movement control
 """
+
 lastYaw = 0
 def pid_control(speed, gain, kp, kd):
     # 전역변수를 지역변수로
@@ -116,29 +119,38 @@ def pid_turn_control(dest, gain, kp, kd):
     movement functions
 """
 
+def turn_correction():
+    turn_cl.reset()
+    i = 0
+    while turn_cl.time() < 1500:
+        pid_turn_control(0, 7.6, 1.3, 2)
+
 def pid_turn(dest, time = 1700):
-    global heading
+    global heading, lastYaw
     i = 0
     turn_cl.reset()
 
     while turn_cl.time() < time:
-        g = gyro.angle()
-        print(g, gyro.angle() + dest + int(dest / 90))
         pid_turn_control(dest + int(dest / 90), 7.6, 1.3, 2)
         if gyro.angle() == 0 and i == 0:
             turn_cl.reset()
             i = 1
     print(int(dest / 90))
     gyro.reset_angle(0)
+    lastYaw = 0
     heading += int(dest / 90)
+    checkHeading()
         
 def back():
-    pid_turn(180, 2000)
-    
+    pid_turn(90)
+    pid_turn(90)
+
     ser.clear()
-    robot.stop(Stop.HOLD)
-    robot.reset()
+
     wait(30)
+    if gyro.angle() != 0:
+        turn_correction()
+    robot.reset()
     gyro.reset_angle(0)
 
     while True:
@@ -148,7 +160,7 @@ def back():
         if tof.condition:
             if tof.t3 != 0 and tof.t3 <= 68:
                 break
-        if robot.distance() < -285:
+        if robot.distance() < -310:
             break
     robot.stop()
     
@@ -156,17 +168,19 @@ def back():
 def node():
     global heading, openList
     robot.reset()
-    print(robot.distance())
+    print("heading : ",robot.distance(), heading)
     gyro.reset_angle(0)
-    
+    print(openList)
+    dir = openList.pop(0)
+
     ser.clear()
     while True:
         tof = getTOF()
         pid_control(200, 6, 1, 1.7)
         if tof.condition:
-            if tof.t3 != 0 and tof.t3 <= 68:
+            if tof.t3 != 0 and tof.t3 <= 80:
                 break
-        if robot.distance() < -285:
+        if robot.distance() < -290:
             break
     print(tof)
     robot.stop()
@@ -177,14 +191,16 @@ def node():
     if tof.t1 > 150:
         openList.insert(0, nextDir[heading][2])
         e = 0
+    if tof.t3 > 200:
+        n = 0
+        openList.insert(0, nextDir[heading][0])
     if tof.t2 > 150:
         w = 0
         openList.insert(0, nextDir[heading][1])
-    if tof.t3 > 200:
-        n = 0
     n, s, w, e = getAzimuth(n, w, e)
-    print(int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2), n, w, e)
-
+    wall = int(str(int(e)) + str(int(w)) + str(int(s)) +  str(int(n)), 2)
+    print(wall, n, w, e, dir)
+    appendList(dir, wall)
     return tof
 
 gyro.reset_angle(0)
@@ -237,9 +253,10 @@ def getAzimuth(n, w, e):
 
 nextDir = [
     [direction(0, -1), direction(-1, 0), direction(1, 0)],
-    [direction(-1, 0), direction(0, 1), direction(0, -1)],
+    [direction(1, 0), direction(0, -1), direction(0, 1)],
     [direction(0, 1), direction(1, 0), direction(-1, 0)],
-    [direction(1, 0), direction(0, -1), direction(0, 1)]
+    [direction(-1, 0), direction(0, 1), direction(0, -1)],
+    
 ]
 
 
@@ -279,15 +296,49 @@ back_list = []
     list configuration
 """
 
-def appendList(dir):
-    global grid
-    tGrid = [([0 for i in range(len(grid[0])+ abs(dir.x))] + []) for j in range(len(grid) + abs(dir.y))]
+def appendList(dir, wall):
+    global grid, nextNode
+    tx, ty = 0, 0
+    dx, dy = 0, 0
+    print(openList)
+
+    nextNode = Node(nextNode.x + dir.x, nextNode.y + dir.y, wall)
+    print(nextNode)
+    if (dir.x < 0 or dir.x > 0) and (len(grid[0]) < nextNode.x + dir.x or 0 > nextNode.x + dir.x + 1):
+        tGrid = [NNode() for i in range(len(grid[0]) + 1)]
+        if dir.x == -1:
+            dx = 1
+        tx = -dir.x
+    else:
+        if dir.x < 0 or dir.x > 0:
+            tx = -dir.x
+        tGrid = [NNode() for i in range(len(grid[0]))]
+
+    if (dir.y < 0 or dir.y > 0) and (len(grid) < nextNode.y + dir.y or nextNode.y + dir.y + 1 < 0):
+        tGrid = [(tGrid + []) for i in range(len(grid) + 1)]
+        if dir.y == -1:
+            dy = 1
+        ty = -dir.y
+    else:
+        if dir.y < 0 or dir.y > 0:
+            ty = -dir.y
+        tGrid = [(tGrid + []) for i in range(len(grid))]
     print(tGrid)
+    tGrid[nextNode.y + dy][nextNode.x + dx] = nextNode
+    for e in tGrid:
+        print(e)
+    nextNode.addXY(dx, dy)
     grid = tGrid
 
 tof = gTOF()
+if tof.t1 > 150:
+    openList.insert(0, nextDir[heading][2])
+if tof.t2 > 150:
+    openList.insert(0, nextDir[heading][1])
+if tof.t3 > 200:
+    openList.insert(0, nextDir[heading][0])
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
-
+wall = int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)
 
 
 grid = [[int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)]]
@@ -295,6 +346,18 @@ print(grid)
 
 ser.clear()
 
+
+# --------------- variable configuration ---------------
+
+startPos = [0,0]
+nextNode = Node(0, 0, wall)
+
+
+# if 0 < 0.111 < 1:
+#     pid_turn(90)
+
+# quit()
+gyro.reset_angle(0)
 node()
 pid_turn(-90)
 node()
