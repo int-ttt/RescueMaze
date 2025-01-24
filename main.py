@@ -33,7 +33,7 @@
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
                                  InfraredSensor, UltrasonicSensor, GyroSensor)
-from pybricks.parameters import Port, Stop, Direction, Button, Color
+from pybricks.parameters import Port, Stop, Button, Color
 from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
@@ -52,7 +52,6 @@ robot = DriveBase(lm, rm, wheel_diameter=75.1, axle_track=120)
 gyro = GyroSensor(Port.S4)
 # us = UltrasonicSensor(Port.S2)
 azimuth = namedtuple('azimuth', ['n', 's', 'w', 'e'])
-direction = namedtuple('direction', ['x', 'y'])
 nodeData = namedtuple('nodeData', ['x', 'y', ''])
 # Initialize the EV3
 ev3 = EV3Brick()
@@ -143,8 +142,7 @@ def pid_turn(dest, time = 1700):
     checkHeading()
         
 def back():
-    pid_turn(90)
-    pid_turn(90)
+    pid_turn(180, 2250)
 
     ser.clear()
 
@@ -159,35 +157,34 @@ def back():
         tof = getTOF()
         pid_control(200, 6, 1, 1.7)
         if tof.condition:
-            if tof.t3 != 0 and tof.t3 <= 68:
+            if tof.t3 != 0 and tof.t3 <= 90:
                 break
-        if robot.distance() < -290:
+        if robot.distance() < -295:
             break
     robot.stop()
     
 
-def node():
+def node(dir):
     global heading, openList
     robot.reset()
     print("heading : ",robot.distance(), heading)
     gyro.reset_angle(0)
     print(openList)
-    dir = openList.pop(0)
 
     ser.clear()
     while True:
         tof = getTOF()
         pid_control(200, 6, 1, 1.7)
         if tof.condition:
-            if tof.t3 != 0 and tof.t3 <= 80:
+            if tof.t3 != 0 and tof.t3 <= 90:
                 break
-        if robot.distance() < -290:
+        if robot.distance() < -295:
             break
     print(tof)
     robot.stop(Stop.BRAKE)
     tof = gTOF()
-    on, ow, oe = tof.t3 <= 200, tof.t2 <= 150, tof.t1 <= 150
-    n, s, w, e = getAzimuth(int(on), int(ow), int(oe))
+    on, ow, oe = tof.t3 <= 200, tof.t2 <= 170, tof.t1 <= 170
+    n, s, w, e = correctAzimuth(int(on), int(ow), int(oe))
     wall = int(str(e) + str(w) + str(s) +  str(n), 2)
     print(wall, n, w, e, dir)
     appendList(dir, wall)
@@ -225,7 +222,7 @@ def checkHeading():
     elif heading > 3:
         heading -= 4
 
-def getAzimuth(n, w, e):
+def correctAzimuth(n, w, e):
     s = 0
     tn, ts, tw, te = n, 0, w, e
     if heading == 3:
@@ -245,23 +242,25 @@ def getAzimuth(n, w, e):
         te = n
     return tn, ts, tw, te
 
-
+def getAzimuth(wall):
+    b = format(wall, 'b')
+    e, w, s, n = b
+    return int(n), int(s), int(w), int(e)
 
 nextDir = [
     [direction(0, -1), direction(-1, 0), direction(1, 0)],
     [direction(1, 0), direction(0, -1), direction(0, 1)],
     [direction(0, 1), direction(1, 0), direction(-1, 0)],
     [direction(-1, 0), direction(0, 1), direction(0, -1)],
-    
 ]
 
 
 openList = []
 heading = 0 # heading
             # north = 0
-            # west 1
+            # west 3
             # south = 2
-            # east 3
+            # east 1
 
 # dir
 # forward 0
@@ -292,17 +291,25 @@ back_list = []
     list configuration
 """
 
+lookDirList = [
+    { (0, -1): 0, (1, 0): 2, (0, 1): 3, (-1, 0): 1 },
+    { (0, -1): 1, (1, 0): 0, (0, 1): 2, (-1, 0): 3 },
+    { (0, -1): 3, (1, 0): 1, (0, 1): 0, (-1, 0): 2 },
+    { (0, -1): 2, (1, 0): 3, (0, 1): 1, (-1, 0): 0 }
+]
+    
+
 def appendList(dir, wall):
     speed_cl.reset()
-    global grid, nextNode, openList
+    global grid, nextNode, openList, closedList
     # dx, dy 초기화
     dx, dy = 0, 0
     tx, ty = -dir.x, -dir.y
     # 다음 노드 계산
     nextNode = Node(nextNode.x + dir.x, nextNode.y + dir.y, wall)
     # 그리드 크기 계산
-    new_width = len(grid[0]) if grid else 0
-    new_height = len(grid) if grid else 0
+    new_width = len(grid[0])
+    new_height = len(grid)
 
     # 방향에 따른 그리드 확장 여부 및 nextNode 위치 조정
     if dir.x < 0 and nextNode.x < 0:  # 왼쪽으로 이동
@@ -340,7 +347,6 @@ def appendList(dir, wall):
     else:
         # 기존 그리드 유지
         tGrid = grid
-
     print(tGrid, tx, ty)
 
     for y in range(len(grid)):
@@ -351,21 +357,74 @@ def appendList(dir, wall):
 
     # nextNode 삽입
     tGrid[nextNode.y][nextNode.x] = nextNode
-
+    
     # 그리드 갱신
     grid = tGrid
-    tOpenList = []
     for e in openList:
-        tOpenList.append(direction(e.x + tx, e.y + ty))
-    openList = tOpenList
+        e.addXY(tx, ty)
+    for e in closedList:
+        e.addXY(dx, dy)
+    try:
+        closedList.append(closedDIrection(nextNode.x, nextNode.y, dir.ox, dir.oy))
+    except:
+        closedList.append(direction(nextNode.x, nextNode.y))
     # 확장된 그리드 출력
     for row in tGrid:
         print(row)
+
+def checkDir(dir):
+    global nextNode
+    if  (dir.x != 0 and dir.y != 0) or not (-1 <= dir.x <= 1) and not (-1 <= dir.y <= 1):
+        pid_turn(180, 2250)
+        turn_correction()
+        li = closedList + []
+        li.pop(-1)
+        print(li)
+        l=1
+        while True:
+            if (dir.x == 0 or dir.y == 0) and -1 <= dir.x <= 1 and -1 <= dir.y <= 1:
+                tDir = li.pop(-l)
+                dir = closedDirection(dir.x, dir.y, tDir.x, tDir.y)
+                print(111111, li, dir, l)
+                break
+            
+            lastNode = li.pop(-1)
+            
+            print(lastNode, nextNode)
+            dx, dy = lastNode.x - nextNode.x, lastNode.y - nextNode.y
+            if (not 1 >= dx >= -1) or (not 1 >= dx >= -1) or (dx != 0 and dy != 0):
+                continue
+            print(dx, dy)
+            i = lookDirList[heading][(dx, dy)]
+
+            if i == 1:
+                pid_turn(-90)
+            if i == 2:
+                pid_turn(90)
+            robot.reset()
+            ser.clear()
+            while True:
+                tof = getTOF()
+                pid_control(200, 6, 1, 1.7)
+                if tof.condition:
+                    if tof.t3 != 0 and tof.t3 <= 90:
+                        print(tof.t3)
+                        break
+                if robot.distance() < -295:
+                    break
+            nextNode.addXY(dx, dy)
+            tDir = nextDir[heading][0]
+            tx, ty = -tDir.x, -tDir.y
+            dir.addXY(tx, ty)
+            
+    return dir
 
 tof = gTOF()
 
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 wall = int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)
+
+parent = Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))
 
 if not e:
     openList.insert(0, nextDir[heading][2])
@@ -373,23 +432,44 @@ if not n:
     openList.insert(0, nextDir[heading][0])
 if not w:
     openList.insert(0, nextDir[heading][1])
-grid = [[Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))]]
+grid = [[parent]]
 print(grid)
 
 ser.clear()
 
-
+gyro.reset_angle(0)
 # --------------- variable configuration ---------------
-
+closedList = [direction(0, 0)]
+closedDir = [direction(0,0)]
 startPos = [0,0]
 nextNode = Node(0, 0, wall)
+gyroAngle = 0
 
 
 # if 0 < 0.111 < 1:
 #     pid_turn(90)
 
-# quit()
-gyro.reset_angle(0)
+# while True:
+#     pid_turn(-90)
+#     wait(799)
+
+# back()
+# while True:
+for i in range(12):
+    dir = openList.pop(0)
+    dir = checkDir(dir)
+    lookDir = lookDirList[heading][(dir.x, dir.y)]
+    if lookDir == 1:
+        pid_turn(-90)
+    if lookDir == 2:
+        pid_turn(90)
+    wait(200)
+    node(dir)
+    print(openList, nextNode)
+    print(closedList)
+    
+quit()
+
 node()
 pid_turn(-90)
 node()
@@ -435,8 +515,6 @@ quit()
 
 print(1)
 for i in range(5):
-    
-
     tof = node()
     checkHeading()
     nextNode = openList[0]

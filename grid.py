@@ -9,6 +9,7 @@ from cam import *
 from ucollections import namedtuple
 from pybricks.iodevices import UARTDevice
 
+
 class Node:
     def __init__(self, x, y, wall):
         self.x = x
@@ -16,8 +17,10 @@ class Node:
         self.wall = wall
 
     def __repr__(self):
-        return 'Node({},{},{})'.format(self.x, self.y, self.wall)
-    
+        return 'Node(x={}, y={}, wall={})'.format(self.x, self.y, self.wall)
+
+
+
     def setXY(self, x, y):
         self.x = x;
         self.y = y;
@@ -25,7 +28,36 @@ class Node:
     def addXY(self, x, y):
         self.x += x
         self.y += y
-
+    
 class NNode(Node):
     def __init__(self):
         super().__init__(0, 0, -1)
+
+class direction:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return 'direction(x={},y={})'.format(self.x, self.y)
+
+    
+    def addXY(self, x, y):
+        self.x += x
+        self.y += y
+
+class closedDirection:
+    def __init__(self, x, y, ox, oy):
+        self.x = x
+        self.y = y
+        self.ox = ox
+        self.oy = oy
+
+    def __repr__(self):
+        return 'direction(x={},y={},ox={},oy={})'.format(self.x, self.y, self.ox, self.oy)
+    
+    def addXY(self, x, y):
+        self.x += x
+        self.y += y
+        self.ox += x
+        self.oy += y

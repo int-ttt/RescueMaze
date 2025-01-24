@@ -1,0 +1,115 @@
+Starting: brickrun --directory="/home/robot/RescueMaze" "/home/robot/RescueMaze/main.py"
+----------
+gTOF_debug : TOFData(condition=True, t1=56, t2=105, t3=354, t4=0)
+[[Node(x=0, y=0, wall=14)]]
+heading :  0 0
+[]
+TOFData(condition=False, t1=0, t2=0, t3=0, t4=0)
+gTOF_debug : TOFData(condition=True, t1=249, t2=261, t3=79, t4=0)
+1 1 0 0 direction(x=0,y=-1)
+[[Node(x=0, y=0, wall=14)], [Node(x=0, y=0, wall=-1)]] 0 1
+[Node(x=0, y=0, wall=1)]
+[Node(x=0, y=1, wall=14)]
+[direction(x=-1,y=0), direction(x=1,y=0)] Node(x=0, y=0, wall=1)
+[direction(x=0,y=1), direction(x=0,y=0)]
+-1
+heading :  0 3
+[direction(x=1,y=0)]
+TOFData(condition=False, t1=0, t2=0, t3=0, t4=0)
+gTOF_debug : TOFData(condition=True, t1=58, t2=339, t3=369, t4=0)
+1 1 0 0 direction(x=-1,y=0)
+[[Node(x=0, y=0, wall=1), Node(x=0, y=0, wall=-1)], [Node(x=0, y=1, wall=14), Node(x=0, y=0, wall=-1)]] 1 0
+[Node(x=0, y=0, wall=1), Node(x=1, y=0, wall=1)]
+[Node(x=1, y=1, wall=14), Node(x=1, y=1, wall=14)]
+[direction(x=0,y=1), direction(x=-1,y=0), direction(x=2,y=0)] Node(x=0, y=0, wall=1)
+[direction(x=1,y=1), direction(x=1,y=0), direction(x=0,y=0)]
+-1
+heading :  0 2
+[direction(x=-1,y=0), direction(x=2,y=0)]
+TOFData(condition=True, t1=76, t2=78, t3=110, t4=0)
+gTOF_debug : TOFData(condition=True, t1=79, t2=79, t3=100, t4=0)
+14 0 1 1 direction(x=0,y=1)
+[[Node(x=0, y=0, wall=1), Node(x=1, y=0, wall=1)], [Node(x=1, y=1, wall=14), Node(x=1, y=1, wall=14)]] 0 -1
+[Node(x=0, y=0, wall=1), Node(x=1, y=0, wall=1)]
+[Node(x=0, y=1, wall=14), Node(x=1, y=1, wall=14)]
+[direction(x=-1,y=-1), direction(x=2,y=-1)] Node(x=0, y=1, wall=14)
+[direction(x=1,y=1), direction(x=1,y=0), direction(x=0,y=0), direction(x=0,y=1)]
+2
+[direction(x=1,y=1), direction(x=1,y=0), direction(x=0,y=0)]
+direction(x=0,y=0) Node(x=0, y=1, wall=14)
+0 -1
+111111 [direction(x=1,y=1)] direction(x=-1,y=0,ox=1,oy=0) 1
+-1
+heading :  0 3
+[direction(x=2,y=-1)]
+TOFData(condition=False, t1=0, t2=0, t3=0, t4=0)
+gTOF_debug : TOFData(condition=True, t1=36, t2=333, t3=122, t4=0)
+5 1 1 0 direction(x=-1,y=0,ox=1,oy=0)
+[[Node(x=0, y=0, wall=1), Node(x=1, y=0, wall=1), Node(x=0, y=0, wall=-1)], [Node(x=0, y=0, wall=14), Node(x=1, y=1, wall=14), Node(x=0, y=0, wall=-1)]] 1 0
+[Node(x=0, y=0, wall=5), Node(x=1, y=0, wall=1), Node(x=2, y=0, wall=1)]
+[Node(x=1, y=0, wall=14), Node(x=1, y=0, wall=14), Node(x=2, y=1, wall=14)]
+[direction(x=0,y=1), direction(x=3,y=-1)] Node(x=0, y=0, wall=5)
+[direction(x=2,y=1), direction(x=2,y=0), direction(x=1,y=0), direction(x=1,y=1), direction(x=0,y=0)]
+-1
+heading :  0 2
+[direction(x=3,y=-1)]
+TOFData(condition=True, t1=201, t2=83, t3=141, t4=0)
+gTOF_debug : TOFData(condition=True, t1=193, t2=84, t3=128, t4=0)
+10 0 0 1 direction(x=0,y=1)
+[[Node(x=0, y=0, wall=5), Node(x=1, y=0, wall=1), Node(x=2, y=0, wall=1)], [Node(x=1, y=0, wall=14), Node(x=1, y=0, wall=14), Node(x=2, y=1, wall=14)]] 0 -1
+[Node(x=0, y=0, wall=5), Node(x=1, y=0, wall=1), Node(x=2, y=0, wall=1)]
+[Node(x=0, y=1, wall=10), Node(x=1, y=0, wall=14), Node(x=2, y=1, wall=14)]
+[direction(x=-1,y=0), direction(x=3,y=-2)] Node(x=0, y=1, wall=10)
+[direction(x=2,y=1), direction(x=2,y=0), direction(x=1,y=0), direction(x=1,y=1), direction(x=0,y=0), direction(x=0,y=1)]
+1
+heading :  0 3
+[direction(x=3,y=-2)]
+TOFData(condition=True, t1=28, t2=143, t3=377, t4=0)
+gTOF_debug : TOFData(condition=True, t1=24, t2=145, t3=364, t4=0)
+3 1 0 0 direction(x=-1,y=0)
+[[Node(x=0, y=0, wall=5), Node(x=1, y=0, wall=1), Node(x=2, y=0, wall=1), Node(x=0, y=0, wall=-1)], [Node(x=0, y=1, wall=10), Node(x=1, y=0, wall=14), Node(x=2, y=1, wall=14), Node(x=0, y=0, wall=-1)]] 1 0
+[Node(x=1, y=0, wall=5), Node(x=1, y=0, wall=5), Node(x=2, y=0, wall=1), Node(x=3, y=0, wall=1)]
+[Node(x=0, y=1, wall=3), Node(x=1, y=1, wall=10), Node(x=2, y=0, wall=14), Node(x=3, y=1, wall=14)]
+[direction(x=-1,y=0), direction(x=4,y=-2)] Node(x=0, y=1, wall=3)
+[direction(x=3,y=1), direction(x=3,y=0), direction(x=2,y=0), direction(x=2,y=1), direction(x=1,y=0), direction(x=1,y=1), direction(x=0,y=1)]
+heading :  0 3
+[direction(x=4,y=-2)]
+TOFData(condition=True, t1=263, t2=158, t3=119, t4=0)
+gTOF_debug : TOFData(condition=True, t1=262, t2=156, t3=110, t4=0)
+6 0 1 0 direction(x=-1,y=0)
+[[Node(x=1, y=0, wall=5), Node(x=1, y=0, wall=5), Node(x=2, y=0, wall=1), Node(x=3, y=0, wall=1), Node(x=0, y=0, wall=-1)], [Node(x=0, y=1, wall=3), Node(x=1, y=1, wall=10), Node(x=2, y=0, wall=14), Node(x=3, y=1, wall=14), Node(x=0, y=0, wall=-1)]] 1 0
+[Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=1), Node(x=4, y=0, wall=1)]
+[Node(x=0, y=1, wall=6), Node(x=1, y=1, wall=3), Node(x=2, y=1, wall=10), Node(x=3, y=0, wall=14), Node(x=4, y=1, wall=14)]
+[direction(x=0,y=-1), direction(x=5,y=-2)] Node(x=0, y=1, wall=6)
+[direction(x=4,y=1), direction(x=4,y=0), direction(x=3,y=0), direction(x=3,y=1), direction(x=2,y=0), direction(x=2,y=1), direction(x=1,y=1), direction(x=0,y=1)]
+1
+heading :  0 0
+[direction(x=5,y=-2)]
+TOFData(condition=True, t1=232, t2=104, t3=87, t4=0)
+gTOF_debug : TOFData(condition=True, t1=236, t2=104, t3=78, t4=0)
+5 1 1 0 direction(x=0,y=-1)
+[[Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=1), Node(x=4, y=0, wall=1)], [Node(x=0, y=1, wall=6), Node(x=1, y=1, wall=3), Node(x=2, y=1, wall=10), Node(x=3, y=0, wall=14), Node(x=4, y=1, wall=14)]] 0 1
+[Node(x=0, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=5), Node(x=3, y=0, wall=1), Node(x=4, y=0, wall=1)]
+[Node(x=0, y=1, wall=6), Node(x=1, y=1, wall=3), Node(x=2, y=1, wall=10), Node(x=3, y=0, wall=14), Node(x=4, y=1, wall=14)]
+[direction(x=5,y=-1), direction(x=5,y=-1)] Node(x=0, y=0, wall=5)
+[direction(x=4,y=1), direction(x=4,y=0), direction(x=3,y=0), direction(x=3,y=1), direction(x=2,y=0), direction(x=2,y=1), direction(x=1,y=1), direction(x=0,y=1), direction(x=0,y=0)]
+2
+[direction(x=4,y=1), direction(x=4,y=0), direction(x=3,y=0), direction(x=3,y=1), direction(x=2,y=0), direction(x=2,y=1), direction(x=1,y=1), direction(x=0,y=1)]
+direction(x=0,y=1) Node(x=0, y=0, wall=5)
+0 1
+direction(x=1,y=1) Node(x=0, y=1, wall=5)
+1 0
+-1
+direction(x=2,y=1) Node(x=1, y=1, wall=5)
+1 0
+direction(x=2,y=0) Node(x=2, y=1, wall=5)
+0 -1
+-1
+direction(x=3,y=1) Node(x=2, y=0, wall=5)
+1 1
+Traceback (most recent call last):
+  File "/home/robot/RescueMaze/main.py", line 460, in <module>
+  File "/home/robot/RescueMaze/main.py", line 398, in checkDir
+KeyError: (1, 1)
+----------
+Exited with error code 1.
