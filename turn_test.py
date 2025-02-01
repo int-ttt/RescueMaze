@@ -26,7 +26,7 @@ rm = Motor(Port.B)
 # ul = UltrasonicSensor(Port.S2)
 robot = DriveBase(lm, rm, wheel_diameter=73.21, axle_track = 257)
 ev3.speaker.beep()
-gyro = GyroSensor(Port.S1)
+gyro = GyroSensor(Port.S4)
 TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "t4"])
 ser = UARTDevice(Port.S3, 115200)
 ser.clear()
@@ -124,7 +124,7 @@ def tof_pid_control(speed, gain, yaw, kp, kd):
 
 def gyro_check(a = 0):
     angle = gyro.angle()
-    return -5 + a < angle and angle < 5 - a;
+    return -5 + a < angle and angle < 5 - a
 
 
 
@@ -134,11 +134,8 @@ while not Button.CENTER in ev3.buttons.pressed():
 
 
 while True:
-    tof = getTOF()
-    
-    if not tof.condition:
-        continue
-    print(tof)
+    getTOF()
+    print(rcvPACKET)
 
 while True:
     tof = getTOF()

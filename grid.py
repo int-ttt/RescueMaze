@@ -9,6 +9,7 @@ from cam import *
 from ucollections import namedtuple
 from pybricks.iodevices import UARTDevice
 
+dirTuple = namedtuple('dirTuple', ['x','y'])
 
 class Node:
     def __init__(self, x, y, wall):
@@ -45,6 +46,15 @@ class direction:
     def addXY(self, x, y):
         self.x += x
         self.y += y
+    
+    def copy(self):
+        return direction(self.x, self.y)
+    
+    def equals(self, dir):
+        return self.x == dir.x and self.y == dir.y
+    
+    def getStr(self):
+        return 'dir({},{})'.format(self.x, self.y)
 
 class closedDirection:
     def __init__(self, x, y, ox, oy):
@@ -61,3 +71,9 @@ class closedDirection:
         self.y += y
         self.ox += x
         self.oy += y
+    
+    def equals(self, dir):
+        return self.x == dir.x and self.y == dir.y
+    
+    def getStr(self):
+        return 'dir({},{})'.format(self.x, self.y)
