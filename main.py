@@ -451,8 +451,10 @@ def checkList(dir):
 
 colors=[Color.RED, Color.GREEN, Color.BLUE]
 def colorCheck():
+    global nextNode
     color = cs.color()
     if color in colors:
+        nextNode.setColor(color)
         if color in colors[0:2]:
             ev3.speaker.beep()
             wait(3000)
@@ -514,6 +516,7 @@ while True:
     print(openList, nextNode, lookDir)
     print(closedList)
 
+print("최종 위치정보")
 for e in grid:
     print(e)
 quit()

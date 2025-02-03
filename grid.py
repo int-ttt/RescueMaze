@@ -1,13 +1,4 @@
-from pybricks.hubs import EV3Brick
-from pybricks.ev3devices import (Motor, TouchSensor, ColorSensor,
-                                 InfraredSensor, UltrasonicSensor, GyroSensor)
-from pybricks.parameters import Port, Stop, Direction, Button, Color
-from pybricks.tools import wait, StopWatch, DataLog
-from pybricks.robotics import DriveBase
-from pybricks.media.ev3dev import SoundFile, ImageFile
-from cam import *
 from ucollections import namedtuple
-from pybricks.iodevices import UARTDevice
 
 dirTuple = namedtuple('dirTuple', ['x','y'])
 
@@ -16,11 +7,13 @@ class Node:
         self.x = x
         self.y = y
         self.wall = wall
+        self.color = 0 # color : red; 1 green; 2 blue; 3
 
     def __repr__(self):
         return 'Node(x={}, y={}, wall={})'.format(self.x, self.y, self.wall)
-
-
+    
+    def setColor(self, color):
+        self.color = color
 
     def setXY(self, x, y):
         self.x = x;
