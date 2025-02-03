@@ -306,6 +306,7 @@ back_list = []
     list configuration
 """
 
+# 이동 방향에 따른 방향값
 lookDirList = [
     { (0, -1): 0, (1, 0): 2, (0, 1): 3, (-1, 0): 1 },
     { (0, -1): 1, (1, 0): 0, (0, 1): 2, (-1, 0): 3 },
@@ -393,31 +394,33 @@ def appendList(dir, wall):
 
 def checkDir(dir):
     global nextNode
-    # 만약
+    # 만약 다음 방향 값이 정상적이지 않은 경우
     if  (dir.x != 0 and dir.y != 0) or (not -1 <= dir.x <= 1) or (not -1 <= dir.y <= 1):
+        # 180도 회전 후 보정
         pid_turn(180, 2250)
         turn_correction()
+        # 닫힌 리스트의 임시 변수 생성
         li = closedList + []
+        # 닫힌 리스트에서 현재 위치 제거
         li.pop(-1)
-        print(dir, li)
         l = 0
+        # 다음 방향값
         oDir = direction(dir.x, dir.y)
+        # 다음 방향값으로 되돌아가기
         while True:
-
+            # 값이 정상적인 경우
             if (dir.x == 0 or dir.y == 0) and -1 <= dir.x <= 1 and -1 <= dir.y <= 1 :
                 tDir = li.pop(-l)
                 dir = closedDirection(dir.x, dir.y, tDir.x, tDir.y)
-                
-                print(111111, li, dir, l)
                 break
             
             lastNode = li.pop(-1)
-            
-            print(lastNode, nextNode, dir)
+            # 돌아갈 방향 값
             dx, dy = lastNode.x - nextNode.x, lastNode.y - nextNode.y
+            # 만약 방향 값이 정상적이지 않으면 값 넘기기
             if (not 1 >= dx >= -1) or (not 1 >= dy >= -1) or (dx != 0 and dy != 0):
                 continue
-            print(dx, dy)
+            # 진행 방향으로 회전
             i = lookDirList[heading][(dx, dy)]
             if i != 0:
                 robot.stop(Stop.BRAKE)
@@ -426,20 +429,23 @@ def checkDir(dir):
             if i == 2:
                 pid_turn(90)
             robot.reset()
+            # 카메라 값 초기화
             ser.clear()
+            # 직진
             while True:
                 tof = getTOF()
                 pid_control(250, 6, 1, 1.7)
                 if tof.condition:
                     if tof.t3 != 0 and tof.t3 <= 100:
-                        print(tof.t3)
                         robot.stop(Stop.BRAKE)
                         break
                 if robot.distance() < -300:
                     break
             robot.stop()
+            # 현재 노드를 진행 방향 만큼 값 변경
             nextNode.addXY(dx, dy)
             tDir = nextDir[heading][0]
+            # 진행 방향 만큼 열린 리스트 수정
             tx, ty = -tDir.x, -tDir.y
             dir.addXY(tx, ty)
             for e in openList:
@@ -447,14 +453,9 @@ def checkDir(dir):
 
     return dir
 
-def checkList(dir):
-    result = False
-    for e in closedList:
-        if (e.x, e.y) == (dir.x, dir.y):
-            result = True
-            break
-    return result
-
+'''
+    바닥 색상 확인을 위한 함수
+'''
 colors=[Color.RED, Color.GREEN, Color.BLUE]
 def colorCheck():
     color = cs.color()
@@ -468,13 +469,13 @@ def colorCheck():
             wait(5000)
             ev3.speaker.beep()
 
-
+# ---------- 초기 리스트 설정
 tof = gTOF()
 
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 wall = int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)
 
-parent = Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))
+nextNode = Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))
 
 if not e:
     openList.insert(0, nextDir[heading][2].copy())
@@ -482,7 +483,7 @@ if not n:
     openList.insert(0, nextDir[heading][0].copy())
 if not w:
     openList.insert(0, nextDir[heading][1].copy())
-grid = [[parent]]
+grid = [[nextNode]]
 print(grid)
 
 ser.clear()
@@ -504,7 +505,7 @@ gyroAngle = 0
 #     pid_turn(-90)
 #     wait(799)
 
-# back()
+# 메인 함수
 while True:
     if len(openList) == 0:
         break
@@ -522,4 +523,3 @@ while True:
 
 for e in grid:
     print(e)
-quit()
