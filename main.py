@@ -59,23 +59,29 @@ ev3 = EV3Brick()
 turn_cl = StopWatch()
 speed_cl = StopWatch()
 
+
+'''
+    자이로 센서의 드리프트 현상을 감지하고 감지된 센서가 아닌 다른 센서를 활용하도록 하는 코드
+    자이로 센서는 gyro 변수에 g1, g2 센서를 대입해서 사용
+'''
 def check_drift():
     global gyro
-    
+    # 현재 로봇의 상태(움직임) 확인
     if robot.state()[1] == 0:
-        print("checking drift")
+        # 각 센서의 임시 값 입력
         g1a = g1.angle()
         g2a = g2.angle()
         wait(100)
+        # 센서의 임시 값과 현재 값을 비교
+        # 현재 값이 임시 값과 다르다면 다른 자이로 센서를 사용하도록 gyro 센서값 변경
         if g1a == g1.angle():
             gyro = g1
         elif g2a == g2.angle():
             gyro = g2
         else:
+            # 두 센서 모두 드리프트가 일어난다면 현재 저장된 각도값으로 자이로 센서 초기화
             g1.reset_angle(gyroAngle)
             g2.reset_angle(gyroAngle)
-    else:
-        print('motor is running')
 
 # last_angle = using_gyro.angle()
 # robot.drive(0, 80)
@@ -92,6 +98,11 @@ def check_drift():
     pid movement control
 """
 
+
+'''
+    직진 시 사용하는 pid 함수
+    입력값; speed: 속도, gain: 함수 내 steering 변수를 곱해주는 값 kp, kd: 움직임 조정 값
+'''
 lastYaw = 0
 def pid_control(speed, gain, kp, kd):
     # 전역변수를 지역변수로
@@ -106,6 +117,10 @@ def pid_control(speed, gain, kp, kd):
     robot.drive(-speed, steering)
 
 lastTurnYaw = 0
+'''
+    회전 시 사용하는 pid 함수
+    입력값; dest: 회전각도, gain: 함수 내 steering 변수를 곱해주는 값, kp, kd: 움직임 값 조정
+'''
 def pid_turn_control(dest, gain, kp, kd):
     global lastTurnYaw, gyroAngle
     yaw = dest+gyro.angle() + gyroAngle
@@ -119,12 +134,20 @@ def pid_turn_control(dest, gain, kp, kd):
     movement functions
 """
 
+'''
+    일부 회전 시 정확하지 않은 각도에 도달하는 경우를 방지하기 위한 코드
+    1.5초 동안 각도값 조정
+'''
 def turn_correction():
     turn_cl.reset()
     i = 0
     while turn_cl.time() < 1500:
         pid_turn_control(0, 7.6, 1.3, 2)
 
+'''
+    회전 시 사용하는 함수
+    입력값; dest 회전각도, time: 회전할 시간
+'''
 def pid_turn(dest, time = 1700):
     global heading, lastYaw, gyroAngle
     i = 0
@@ -142,60 +165,49 @@ def pid_turn(dest, time = 1700):
     checkHeading()
     robot.stop(Stop.BRAKE)
     check_drift()
-        
-def back():
-    pid_turn(180, 2250)
 
-    ser.clear()
-
-    wait(30)
-    if gyro.angle() != 0:
-        turn_correction()
-    robot.reset()
-
-    while True:
-        
-        tof = getTOF()
-        pid_control(200, 6, 1, 1.7)
-        if tof.condition:
-            if tof.t3 != 0 and tof.t3 <= 90:
-                break
-        if robot.distance() < -295:
-            break
-    robot.stop()
-    
-
+'''
+    직진 시 사용하는 함수
+    입력값; dir: 다음 이동 위치정보
+'''
 def node(dir):
     global heading, openList
     # 거리값 리셋
     robot.reset()
-    # print("heading : ",robot.distance(), heading)
-    # print(openList)
-
+    # 카메라에서 불러오는 값들을 초기화
+    # 오래되거나 잘못된 값들을 읽어오는것 방지
     ser.clear()
+    # 직진
     while True:
         tof = getTOF()
         pid_control(250, 8, 1, 1.7)
         if tof.condition:
+            # tof 센서의 거리가 일정거리 이하로 내려가면 멈춤
             if tof.t3 != 0 and tof.t3 <= 100:
                 robot.stop(Stop.BRAKE)
                 break
         if robot.distance() < -305:
             break
-    # print(tof)
     robot.stop(Stop.BRAKE)
+    # tof 값들을 불러오고 로봇이 바라보는 세 방향에 대한 벽 정보를 확인
+    # 벽 정보는 뚤려있을 때 0, 막혀있을 때 1
     tof = gTOF()
     on, ow, oe = tof.t3 <= 200, tof.t2 <= 170, tof.t1 <= 170
+    # 만약 세 벽이 모두 막혀있을 때
     if on == 1 and ow == 1 and oe == 1:
+        # 0.1초 대기 후 다시 확인
         wait(100)
         tof = gTOF()
         on, ow, oe = tof.t3 <= 200, tof.t2 <= 170, tof.t1 <= 170
+    # 각 값들을 현재 바라보던 방향에서 처음 시작할 때 바라보는 방향으로 방향값 변경
     n, s, w, e = correctAzimuth(int(on), int(ow), int(oe))
+    # 벽 정보 저장
     wall = int(str(e) + str(w) + str(s) +  str(n), 2)
-    print(wall, n, w, e, dir, on, ow, oe)
+    # 전체 맵에 현재 위치 저장
+    # 이미 지나온 곳을 다시 저장하는 경우 제거
     n, w, e = appendList(dir, wall)
 
-    print(n, w, e)
+    # 뚫려있는 방향을 열린 리스트에 추가
     if not oe and e[0]:
         openList.insert(0, e[1])
     if not on and n[0]:
@@ -205,25 +217,13 @@ def node(dir):
     return tof
 
 
-gyro.reset_angle(0)
-#
-# print(us.distance())
-#
-# while us.distance() >= :
-#     pid_control(100, 5, 1, 0)
-#
-# tof = gTOF()
-#
-# if tof.t1 > 100:
-#     pid_turn(90)
-# elif tof.t2 > 100:
-#     pid_turn(-90)
-#
-
 """
     heading
 """
 
+'''
+    바라보는 방향 수정
+'''
 def checkHeading():
     global heading
     if heading < 0:
@@ -231,6 +231,7 @@ def checkHeading():
     elif heading > 3:
         heading -= 4
 
+# 입력받은 방향값을 처음 시작될 때의 방향값으로 변경
 def correctAzimuth(n, w, e):
     s = 0
     tn, ts, tw, te = n, 0, w, e
@@ -251,11 +252,13 @@ def correctAzimuth(n, w, e):
         te = n
     return tn, ts, tw, te
 
+# 벽 정보를 바탕으로 현재 위치의 벽 정보를 확인
 def getAzimuth(wall):
     b = format(wall, 'b')
     e, w, s, n = b
     return int(n), int(s), int(w), int(e)
 
+# 방향에 따른 열린 리스트에 추가될 값들
 nextDir = [
     [direction(0, -1), direction(-1, 0), direction(1, 0)],
     [direction(1, 0), direction(0, -1), direction(0, 1)],
@@ -263,8 +266,10 @@ nextDir = [
     [direction(-1, 0), direction(0, 1), direction(0, -1)],
 ]
 
-
+# 열린 리스트
 openList = []
+
+# 현재 바라보는 방향
 heading = 0 # heading
             # north = 0
             # west 3
@@ -276,6 +281,7 @@ heading = 0 # heading
 # left 1
 # right 2
 
+# 벽 정보 시각화
 """             ___             ___
     0=      1=      2=      3=
                         ___     ___
@@ -300,6 +306,7 @@ back_list = []
     list configuration
 """
 
+# 이동 방향에 따른 방향값
 lookDirList = [
     { (0, -1): 0, (1, 0): 2, (0, 1): 3, (-1, 0): 1 },
     { (0, -1): 1, (1, 0): 0, (0, 1): 2, (-1, 0): 3 },
@@ -387,31 +394,33 @@ def appendList(dir, wall):
 
 def checkDir(dir):
     global nextNode
-    # 만약
+    # 만약 다음 방향 값이 정상적이지 않은 경우
     if  (dir.x != 0 and dir.y != 0) or (not -1 <= dir.x <= 1) or (not -1 <= dir.y <= 1):
+        # 180도 회전 후 보정
         pid_turn(180, 2250)
         turn_correction()
+        # 닫힌 리스트의 임시 변수 생성
         li = closedList + []
+        # 닫힌 리스트에서 현재 위치 제거
         li.pop(-1)
-        print(dir, li)
         l = 0
+        # 다음 방향값
         oDir = direction(dir.x, dir.y)
+        # 다음 방향값으로 되돌아가기
         while True:
-
+            # 값이 정상적인 경우
             if (dir.x == 0 or dir.y == 0) and -1 <= dir.x <= 1 and -1 <= dir.y <= 1 :
                 tDir = li.pop(-l)
                 dir = closedDirection(dir.x, dir.y, tDir.x, tDir.y)
-                
-                print(111111, li, dir, l)
                 break
             
             lastNode = li.pop(-1)
-            
-            print(lastNode, nextNode, dir)
+            # 돌아갈 방향 값
             dx, dy = lastNode.x - nextNode.x, lastNode.y - nextNode.y
+            # 만약 방향 값이 정상적이지 않으면 값 넘기기
             if (not 1 >= dx >= -1) or (not 1 >= dy >= -1) or (dx != 0 and dy != 0):
                 continue
-            print(dx, dy)
+            # 진행 방향으로 회전
             i = lookDirList[heading][(dx, dy)]
             if i != 0:
                 robot.stop(Stop.BRAKE)
@@ -420,20 +429,23 @@ def checkDir(dir):
             if i == 2:
                 pid_turn(90)
             robot.reset()
+            # 카메라 값 초기화
             ser.clear()
+            # 직진
             while True:
                 tof = getTOF()
                 pid_control(250, 6, 1, 1.7)
                 if tof.condition:
                     if tof.t3 != 0 and tof.t3 <= 100:
-                        print(tof.t3)
                         robot.stop(Stop.BRAKE)
                         break
                 if robot.distance() < -300:
                     break
             robot.stop()
+            # 현재 노드를 진행 방향 만큼 값 변경
             nextNode.addXY(dx, dy)
             tDir = nextDir[heading][0]
+            # 진행 방향 만큼 열린 리스트 수정
             tx, ty = -tDir.x, -tDir.y
             dir.addXY(tx, ty)
             for e in openList:
@@ -441,14 +453,9 @@ def checkDir(dir):
 
     return dir
 
-def checkList(dir):
-    result = False
-    for e in closedList:
-        if (e.x, e.y) == (dir.x, dir.y):
-            result = True
-            break
-    return result
-
+'''
+    바닥 색상 확인을 위한 함수
+'''
 colors=[Color.RED, Color.GREEN, Color.BLUE]
 def colorCheck():
     global nextNode
@@ -464,13 +471,13 @@ def colorCheck():
             wait(5000)
             ev3.speaker.beep()
 
-
+# ---------- 초기 리스트 설정
 tof = gTOF()
 
 n, w, e = tof.t3 < 150, tof.t1 < 150, tof.t2 < 150
 wall = int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2)
 
-parent = Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))
+nextNode = Node(0, 0, int(str(int(e)) + str(int(w)) + '1' + str(int(n)), 2))
 
 if not e:
     openList.insert(0, nextDir[heading][2].copy())
@@ -478,7 +485,7 @@ if not n:
     openList.insert(0, nextDir[heading][0].copy())
 if not w:
     openList.insert(0, nextDir[heading][1].copy())
-grid = [[parent]]
+grid = [[nextNode]]
 print(grid)
 
 ser.clear()
@@ -500,7 +507,7 @@ gyroAngle = 0
 #     pid_turn(-90)
 #     wait(799)
 
-# back()
+# 메인 함수
 while True:
     if len(openList) == 0:
         break
@@ -519,4 +526,3 @@ while True:
 print("최종 위치정보")
 for e in grid:
     print(e)
-quit()
