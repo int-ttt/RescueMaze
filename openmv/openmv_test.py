@@ -53,6 +53,7 @@ from time import sleep_ms, sleep_us
 from pyb import I2C
 from machine import SoftI2C, Pin
 from VL53L0X import VL53L0X
+from MLX90614 import MLX90614
 
 
 
@@ -90,6 +91,8 @@ I2C_J15= SoftI2C(scl = 'P6', sda = 'P9', freq = 800000, timeout=50000) #Soft I2C
 TOF1 = VL53L0X(I2C_J7)
 TOF2 = VL53L0X(I2C_J8)
 TOF3 = VL53L0X(I2C_J9)
+TEMP1 = MLX90614(I2C_J7)
+TEMP2 = MLX90614(I2C_J8)
 #TOF4 = VL53L0X(I2C_J15)
 #IMU = BNO055(I2C_J9)
 TOF1.start()
