@@ -178,15 +178,17 @@ def node(dir):
     # 오래되거나 잘못된 값들을 읽어오는것 방지
     ser.clear()
     # 직진
+    defaultSpeed = 500
+    destMM = 300
     while True:
         tof = getTOF()
-        pid_control(250, 8, 1, 1.7)
+        pid_control(defaultSpeed - defaultSpeed  / 2 *  robot.distance() / -destMM, 8, 1, 1.7)
         if tof.condition:
             # tof 센서의 거리가 일정거리 이하로 내려가면 멈춤
-            if tof.t3 != 0 and tof.t3 <= 100:
+            if tof.t3 != 0 and tof.t3 <= 110:
                 robot.stop(Stop.BRAKE)
                 break
-        if robot.distance() < -305:
+        if robot.distance() < -destMM:
             break
     robot.stop(Stop.BRAKE)
     # tof 값들을 불러오고 로봇이 바라보는 세 방향에 대한 벽 정보를 확인
@@ -393,6 +395,9 @@ def appendList(dir, wall):
     return (nc, n), (wc, w), (ec, e)
 
 def checkDir(dir):
+    defaultSpeed = 300
+    destMM = 300
+
     global nextNode
     # 만약 다음 방향 값이 정상적이지 않은 경우
     if  (dir.x != 0 and dir.y != 0) or (not -1 <= dir.x <= 1) or (not -1 <= dir.y <= 1):
@@ -434,12 +439,12 @@ def checkDir(dir):
             # 직진
             while True:
                 tof = getTOF()
-                pid_control(250, 6, 1, 1.7)
+                pid_control(defaultSpeed - defaultSpeed  / 4 *  robot.distance() / -destMM, 6, 1, 1.7)
                 if tof.condition:
-                    if tof.t3 != 0 and tof.t3 <= 100:
+                    if tof.t3 != 0 and tof.t3 <= 120:
                         robot.stop(Stop.BRAKE)
                         break
-                if robot.distance() < -300:
+                if robot.distance() < -destMM:
                     break
             robot.stop()
             # 현재 노드를 진행 방향 만큼 값 변경
@@ -520,6 +525,7 @@ while True:
         pid_turn(90)
     node(dir)
     colorCheck()
+    # 열린 리스트, 현재 노드, 바라볼 방향 코드, 닫힌 리스트
     print(openList, nextNode, lookDir)
     print(closedList)
 
