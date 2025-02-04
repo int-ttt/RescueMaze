@@ -136,11 +136,13 @@ while True:
     t3 = TOF3.read()
 #    t4 = TOF4.read()
 
+    te1 = TEMP1.getObjCelsius()
+    te2 = TEMP2.getObjCelsius()
 
 #    print(t1, t2, t3, t4)
+    tes1 = str(te1).split('.')
+    tes2 = str(te2).split('.')
 
-
-#
 #    t4v = t4 - td4
 #    t1v = 0
 #    t2v = 0
@@ -156,10 +158,14 @@ while True:
     addData('uInt8', PacketSeqNO)
     addData('uInt8', errorPacket)        # Error Packet
 
-    addData('uInt16', t1v)        # TOF1 : 부호 없는 2 바이트 정수('<H').
-    addData('uInt16', t2v)        # TOF2 : 부호 없는 2 바이트 정수('<H').
-    addData('uInt16', t3v)        # TOF3 : 부호 없는 2 바이트 정수('<H').
-    addData('uInt16', t4v)        # TOF4 : 부호 없는 2 바이트 정수('<H').
+    addData('uInt16', t1v)              # TOF1 : 부호 없는 2 바이트 정수('<H').
+    addData('uInt16', t2v)              # TOF2 : 부호 없는 2 바이트 정수('<H').
+    addData('uInt16', t3v)              # TOF3 : 부호 없는 2 바이트 정수('<H').
+    addData('uInt16', t4v)              # TOF4 : 부호 없는 2 바이트 정수('<H').
+    addData('uint8', int(tes1[0]))           # TEMP1 : 부호 없는 1 바이트 온도 정수 부분
+    addData('uint8', int(tes1[1][0:2])) # TEMP1 : 부호 없는 1 바이트 온도 소수 부분
+    addData('uint8', int(tes2[0]))           # TEMP2 : 부호 없는 1 바이트 온도 정수 부분
+    addData('uint8', int(tes2[1][0:2])) # TEMP2 : 부호 없는 1 바이트 온도 소수 부분
 
     chksum = 0
     for b in PACKET:

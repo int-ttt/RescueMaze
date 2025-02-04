@@ -9,8 +9,8 @@ ser = UARTDevice(Port.S3, 115200)
 ser.clear()
 wait(100)
 
-TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "t4"])
-null_tof = TOFData(False, 0, 0, 0, 0)
+TOFData = namedtuple("TOFData", ["condition", "t1", "t2", "t3", "temp1", "temp2"])
+null_tof = TOFData(False, 0, 0, 0, 0, 0)
 
 rcvPACKET = bytearray([])
 Object = list([])
@@ -37,6 +37,8 @@ def readPacket() -> bool:
         if rcvPACKET[1] == 0xCC:
             PacketIndex = 2
             rcvPACKET += ser.read(10)
+            wait(1)
+            rcvPACKET += ser.read(4)
 
             rcvPACKET += ser.read() #CHECKSUM
 
@@ -60,7 +62,12 @@ def getTOF():
             tof2 = struct.unpack("<H",rcvPACKET[6:8])[0]
             tof3 = struct.unpack("<H",rcvPACKET[8:10])[0]
             tof4 = struct.unpack("<H",rcvPACKET[10:12])[0]
-
+            temp1i = struct.unpack("<H",rcvPACKET[12:13])[0]
+            temp1f = struct.unpack("<H",rcvPACKET[13:14])[0]
+            temp2i = struct.unpack("<H",rcvPACKET[14:15])[0]
+            temp2f = struct.unpack("<H",rcvPACKET[15:16])[0]
+            temp1 = float(str(temp1i) + '.' + str(temp1f))
+            temp2 = float(str(temp2i) + '.' + str(temp2f))
             # print("OK")
             # print("TOF1  : ",tof1)
             # print("TOF2  : ",tof2)
@@ -71,7 +78,7 @@ def getTOF():
             #     print("TOF1  : ",tof1)
             # if tof2 < 50:
             #     print("TOF2  : ",tof2)
-            return TOFData(True, tof1, tof2, tof3, tof4)
+            return TOFData(True, tof1, tof2, tof3, temp1, temp2)
         else: return null_tof
     else:
         return null_tof
